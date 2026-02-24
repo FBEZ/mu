@@ -51,7 +51,7 @@ def parse_args() -> argparse.Namespace:
         description="Convert online courses from one format to another."
     )
     parser.add_argument(
-        "-f", "--from-format", choices=["html", "md", "olx"], default=None
+        "-f", "--from-format", choices=["html", "md", "folder_md", "olx"], default=None
     )
     parser.add_argument(
         "-t", "--to-format", choices=["html", "md", "olx"], default=None
@@ -80,7 +80,11 @@ def parse_args() -> argparse.Namespace:
         elif args.input.lower().endswith(".md"):
             args.from_format = "md"
         elif os.path.isdir(args.input):
-            args.from_format = "olx"
+            # Check if it's a folder_md course (has index.md)
+            if os.path.isfile(os.path.join(args.input, "index.md")):
+                args.from_format = "folder_md"
+            else:
+                args.from_format = "olx"
         else:
             raise MuError("Could not detect input file format.")
         logger.info("Detected input format: %s", args.from_format)
