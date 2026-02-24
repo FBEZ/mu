@@ -4,15 +4,44 @@ Mu is for authors of online courses. It allows you to cross-compile courses from
 
 Supported formats:
 
-- [Markdown](https://daringfireball.net/projects/markdown/): with [Pandoc-flavoured](https://garrettgman.github.io/rmarkdown/authoring_pandoc_markdown.html) header attributes.
+- [Markdown](https://daringfireball.net/projects/markdown/): single file with [Pandoc-flavoured](https://garrettgman.github.io/rmarkdown/authoring_pandoc_markdown.html) header attributes.
+- [Folder Markdown](#folder-markdown): organized folder structure with multiple Markdown files.
 - HTML 5
 - Open Learning XML ([OLX](https://docs.openedx.org/en/latest/educators/navigation/olx.html)) from [Open edX](https://openedx.org).
 
-Check out the [course.md](https://github.com/overhangio/mu/blob/main/examples/course.md) file to see what an actual course in Markdown format looks like.
+Check out the [course.md](https://github.com/overhangio/mu/blob/main/examples/course.md) file to see what an actual course in single-file Markdown format looks like.
 
 ## Installation
 
+### Using PyPI (latest stable release)
+
     pip install mu-courses
+
+### Using the development version from source
+
+Since the PyPI version may not include the latest features and fixes, you can install directly from the repository:
+
+1. Clone the repository:
+    ```bash
+    git clone https://github.com/overhangio/mu.git
+    cd mu
+    ```
+
+2. Create a virtual environment:
+    ```bash
+    python -m venv venv
+    source venv/bin/activate  # On Windows: venv\Scripts\activate
+    ```
+
+3. Install in editable mode with development dependencies:
+    ```bash
+    pip install -e .
+    ```
+
+Alternatively, if you only want the latest features without development tools:
+    ```bash
+    pip install -e .
+    ```
 
 Conversion from and to Markdown is handled with the help of [Pandoc](https://pandoc.org/). Thus, a recent version of Pandoc is required when working with Markdown documents. See the corresponding [installation instructions](https://pandoc.org/installing.html).
 
@@ -27,6 +56,78 @@ Conversion from and to Markdown is handled with the help of [Pandoc](https://pan
     ...
 
 When writing Markdown files, the generated documents will include non-standard (but widely recognized) [header identifiers](https://garrettgman.github.io/rmarkdown/authoring_pandoc_markdown.html#header-identifiers) to store the course unit attributes.
+
+### Folder Markdown
+
+For large courses, you can organize your content across multiple Markdown files in a folder structure instead of a single file. This is useful for team collaboration and better file organization.
+
+**Folder structure:**
+
+```
+course_folder/
+├── index.md                     # Course metadata and description
+├── chapter1/
+│   ├── index.md                 # Chapter metadata
+│   ├── sequential1/
+│   │   ├── index.md             # Sequential metadata
+│   │   ├── unit1.md             # Content units
+│   │   └── unit2.md
+│   └── sequential2/
+│       └── ...
+└── chapter2/
+    └── ...
+```
+
+**File format:** Each Markdown file can include optional YAML frontmatter for metadata:
+
+```yaml
+---
+title: My Unit Title
+order: 1
+hidden: false
+---
+
+
+```
+
+**Metadata fields:**
+- `title`: Display name (uses filename if not specified)
+- `order`: Numeric ordering (default: 9999, sorted ascending)
+- `hidden` or `draft`: Set to `true` to exclude from compilation
+- `org`, `course`, `url_name`: Available at course level for OLX metadata
+
+**Important:** Course, chapter, and sequential `index.md` files should contain only frontmatter. Any text in the body of these files will be ignored with a warning. If you need to add notes or comments for organization, use HTML comments:
+
+```markdown
+---
+title: Chapter 1
+order: 1
+---
+
+<!-- This is an internal note and will be ignored -->
+```
+
+Only unit files (non-index markdown files within sequentials) should contain actual content in their body.
+
+**Usage:**
+
+```bash
+# Compile folder markdown to single markdown
+mu /path/to/course_folder /path/to/compiled.md
+
+# Or directly to OLX
+mu /path/to/course_folder /path/to/olx/
+```
+
+**Debug mode:**
+
+To debug the folder markdown compilation process, set the `MU_DEBUG_FOLDER_MD` environment variable:
+
+```bash
+MU_DEBUG_FOLDER_MD=1 mu /path/to/course_folder /path/to/olx/
+```
+
+This will keep the temporary merged markdown file and print its location to the console, allowing you to inspect the intermediate merged markdown before it's converted to the target format.
 
 ## Examples
 
