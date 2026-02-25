@@ -11,6 +11,22 @@ Supported formats:
 
 Check out the [course.md](https://github.com/overhangio/mu/blob/main/examples/course.md) file to see what an actual course in single-file Markdown format looks like.
 
+## What's New in This Fork
+
+This fork extends the original [overhangio/mu](https://github.com/overhangio/mu) with features designed for team collaboration and better course organization:
+
+### Folder Markdown Format
+- **Multi-file course structure**: Organize large courses across multiple Markdown files in a hierarchical folder structure
+- **YAML frontmatter support**: Store metadata (title, order, visibility) in frontmatter 
+- **Automatic ordering**: Control content order with `order` field in frontmatter
+- **Smart index files**: Course, chapter, and sequential `index.md` files contain only metadata; body text is ignored with warnings
+
+### Developer Experience
+- **Debug mode**: Set `MU_DEBUG_FOLDER_MD=1` to inspect merged markdown during compilation
+- **Improved documentation**: Comprehensive guides with examples for folder markdown format
+- **Complete example course**: Full multi-chapter, multi-sequential example in `examples/course_folder/`
+
+
 ## Installation
 
 ### Using PyPI (latest stable release)
