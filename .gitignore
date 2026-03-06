@@ -7,6 +7,12 @@ TODO
 /examples_output
 muenv
 .DS_Store
+Makefile
+
+openspec
+.github
+.opencode
+examples/course_complete
 
 # ** .gitignore for python **
 
