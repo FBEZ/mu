@@ -137,6 +137,8 @@ class HtmlReader(BaseReader):
     on_p = _on_html
     on_pre = _on_html
     on_video = _on_html
+    on_figure = _on_html
+    on_figcaption = _on_html
 
 
 class DocumentReader(HtmlReader):

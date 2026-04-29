@@ -32,11 +32,14 @@ def run() -> None:
     )
 
     try:
-        course = ReaderClass(args.input).read()
+        reader = ReaderClass(args.input)
+        course = reader.read()
     except MuError as e:
         raise MuError(f"Error in {args.from_format} reader: {e.args[0]}") from e
     try:
-        WriterClass().write(course).write_to(args.output)
+        # Pass source directory to writer if reader has it (for static folder copying)
+        source_dir = getattr(reader, "source_dir", None)
+        WriterClass().write(course).write_to(args.output, source_dir=source_dir)
     except MuError as e:
         raise MuError(f"Error in in {args.to_format} writer: {e.args[0]}") from e
 
