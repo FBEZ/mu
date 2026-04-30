@@ -1,5 +1,6 @@
 import os
 import re
+import subprocess
 import tempfile
 import yaml
 from pathlib import Path
@@ -193,13 +194,76 @@ class Reader(SingleFileReader):
             )
 
         title = fm.get("title", "Untitled Course")
-        org = fm.get("org", "org")
-        course = fm.get("course", "course")
-        url_name = fm.get("url_name", "course")
+        organization = fm.get("organization", "org")
+        course_number = fm.get("course_number", "course")
+        course_run = fm.get("course_run", "course")
+        
+        # Read additional course metadata
+        description = fm.get("description", "")
+        course_image = fm.get("course_image", "")
+        video_embed = fm.get("video_embed", "")
+        start_date = fm.get("start_date", "")
+        end_date = fm.get("end_date", "")
+        enrollment_start = fm.get("enrollment_start", "")
+        enrollment_end = fm.get("enrollment_end", "")
+        effort = fm.get("effort", "")
+        duration = fm.get("duration", "")
+        language = fm.get("language", "")
+        
+        # Read overview from separate file if exists
+        overview = ""
+        overview_path = root / "overview.md"
+        if overview_path.exists():
+            overview_fm, overview_body = self._read_md(overview_path)
+            # Convert markdown to HTML for OLX
+            try:
+                overview_html = subprocess.check_output(
+                    ["pandoc", "--from=markdown", "--to=html5"],
+                    input=overview_body.strip().encode(),
+                ).decode()
+                overview = overview_html.strip()
+            except (FileNotFoundError, subprocess.CalledProcessError) as e:
+                print(f"[WARNING] Could not convert overview.md to HTML: {e}")
+                overview = overview_body.strip()
 
-        output.append(
-            f"# {title} {{olx-org={org} olx-course={course} olx-url_name={url_name}}}"
-        )
+        # Build attributes string for markdown header
+        attrs = [
+            f"olx-org={organization}",
+            f"olx-course={course_number}",
+            f"olx-url_name={course_run}",
+        ]
+        if description:
+            # Escape quotes and special characters for attribute value
+            description_escaped = description.replace('"', '&quot;')
+            attrs.append(f'course-description="{description_escaped}"')
+        if course_image:
+            attrs.append(f'course-image="{course_image}"')
+        if video_embed:
+            # Escape quotes and special characters for attribute value
+            video_escaped = video_embed.replace('"', '&quot;')
+            attrs.append(f'course-video="{video_escaped}"')
+        if start_date:
+            attrs.append(f'course-start-date="{start_date}"')
+        if end_date:
+            attrs.append(f'course-end-date="{end_date}"')
+        if enrollment_start:
+            attrs.append(f'course-enrollment-start="{enrollment_start}"')
+        if enrollment_end:
+            attrs.append(f'course-enrollment-end="{enrollment_end}"')
+        if effort:
+            effort_escaped = effort.replace('"', '&quot;')
+            attrs.append(f'course-effort="{effort_escaped}"')
+        if duration:
+            duration_escaped = duration.replace('"', '&quot;')
+            attrs.append(f'course-duration="{duration_escaped}"')
+        if language:
+            attrs.append(f'course-language="{language}"')
+        if overview:
+            # Escape and encode overview
+            overview_escaped = overview.replace('"', '&quot;').replace('\n', '&#10;')
+            attrs.append(f'course-overview="{overview_escaped}"')
+
+        output.append(f"# {title} {{{' '.join(attrs)}}}")
         output.append("")
 
         # ================ CHAPTERS ================
