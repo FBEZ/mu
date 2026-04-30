@@ -44,6 +44,13 @@ example-olx: ## Generate OLX example from the markdown file
 
 ###### Additional commands
 
+
+run_course:
+	export MU_DEBUG_FOLDER_MD=1
+	python -m mu.main /Users/francesco/Documents/articles/norepo/espressif-academy-esp-idf-basic/course ./examples_output/course_multi/  
+	cp -R /Users/francesco/Documents/articles/norepo/espressif-academy-esp-idf-basic/course/static ./examples_output/course_multi/
+	tar zcvf ./examples_output/course_multi_ready_$$(date +%Y%m%d_%H%M%S).tar.gz ./examples_output/course_multi/
+
 ESCAPE = 
 help: ## Print this help
 	@grep -E '^([a-zA-Z_-]+:.*?## .*|######* .+)$$' Makefile \

@@ -1,5 +1,7 @@
 import logging
 import os
+from pathlib import Path
+from typing import Optional
 
 from bs4 import BeautifulSoup
 from bs4.element import Tag
@@ -17,7 +19,7 @@ class UnstyledWriter(BaseWriter):
     def __init__(self) -> None:
         self.document = beautiful_soup("<!DOCTYPE html>")
 
-    def write_to(self, path: str) -> None:
+    def write_to(self, path: str, source_dir: Optional[Path] = None) -> None:
         with open(path, "w", encoding="utf-8") as f:
             f.write(self.dumps())
 

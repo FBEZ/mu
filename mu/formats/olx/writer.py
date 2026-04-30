@@ -1,7 +1,9 @@
 import hashlib
 import logging
 import os
+import shutil
 import typing as t
+from pathlib import Path
 
 from bs4 import BeautifulSoup, Tag
 
@@ -20,10 +22,26 @@ class Writer(BaseWriter):
         # unit -> xml dict
         self.unit_xml: t.Dict[units.Unit, Tag] = {}
 
-    def write_to(self, path: str) -> None:
+    def write_to(self, path: str, source_dir: t.Optional[Path] = None) -> None:
         for unit_xml, unit_path in self.xml_paths:
             # Write all xml files
             write_xml(unit_xml, os.path.join(path, unit_path), makedirs=True)
+
+        # Copy static folder if it exists in source
+        if source_dir:
+            source_static = source_dir / "static"
+            if source_static.exists() and source_static.is_dir():
+                dest_static = Path(path) / "static"
+
+                # Remove existing static folder in output if present
+                if dest_static.exists():
+                    shutil.rmtree(dest_static)
+
+                # Copy static folder to output
+                shutil.copytree(source_static, dest_static)
+                logger.info(
+                    f"Copied static folder from {source_static} to {dest_static}"
+                )
 
     def on_collection(self, unit: units.Collection) -> None:
         self.process_top_level_unit(unit)

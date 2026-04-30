@@ -1,4 +1,5 @@
 import os
+import re
 import tempfile
 import yaml
 from pathlib import Path
@@ -11,7 +12,7 @@ from mu.exceptions import MuError
 class Reader(SingleFileReader):
     """
     Reads a folder structure of Markdown files and merges them into a single course.
-    
+
     Expected folder structure:
     course_folder/
     ├── index.md (course metadata and description)
@@ -25,7 +26,7 @@ class Reader(SingleFileReader):
     │       └── ...
     └── chapter2/
         └── ...
-    
+
     Debug mode:
     Set MU_DEBUG_FOLDER_MD=1 environment variable to write merged markdown to disk.
     """
@@ -34,18 +35,23 @@ class Reader(SingleFileReader):
         root = Path(folder_path)
         if not root.is_dir():
             raise MuError(f"Folder path does not exist: {folder_path}")
-        
+
+        # Store source directory path for later use (e.g., static folder copying)
+        self.source_dir = root.resolve()
+
         merged_content = self._compile_course(root)
-        
+
         # Debug mode: write merged content to disk
         debug_mode = os.getenv("MU_DEBUG_FOLDER_MD", "0") == "1"
-        
+
         # Create a temp file with merged content and pass to parent Reader
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False, encoding='utf-8') as tmp:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".md", delete=False, encoding="utf-8"
+        ) as tmp:
             tmp.write(merged_content)
             tmp.flush()
             temp_path = tmp.name
-        
+
         try:
             super().__init__(temp_path)
         finally:
@@ -90,13 +96,14 @@ class Reader(SingleFileReader):
             else:
                 end += 3
             text = text[:start] + text[end:]
-        
+
         # Check if remaining text is non-empty (ignoring whitespace)
         return bool(text.strip())
 
     @staticmethod
     def _sorted_items(items: List[Path]) -> List[Path]:
         """Sort items by frontmatter 'order' field, then by name."""
+
         def sort_key(p: Path):
             if p.suffix == ".md":
                 fm, _ = Reader._read_md(p)
@@ -109,6 +116,61 @@ class Reader(SingleFileReader):
     def _heading(level: int, title: str) -> str:
         """Generate markdown heading."""
         return f"{'#' * level} {title}"
+
+    @staticmethod
+    def _rewrite_image_paths(body: str, unit_path: Path, root: Path) -> str:
+        """
+        Rewrite image paths to be relative to course root.
+
+        All images must be in <course_root>/static/.
+        Any path like ../../static/foo.webp becomes /static/foo.webp
+        Subdirectory structure is preserved (e.g., /static/diagrams/img.webp)
+        """
+
+        def rewrite_match(match):
+            alt_text = match.group(1)
+            img_path = match.group(2)
+
+            # Skip external URLs
+            if img_path.startswith(("http://", "https://")):
+                return match.group(0)  # Return unchanged
+
+            # Extract the path components
+            path_obj = Path(img_path)
+
+            # Check if path contains 'static' directory
+            parts = path_obj.parts
+            if "static" in parts:
+                # Find static and preserve everything after it
+                static_idx = parts.index("static")
+                # Reconstruct path from static onwards with / prefix (absolute from root)
+                new_path = "/static"
+                if len(parts) > static_idx + 1:
+                    # Join remaining parts with forward slashes
+                    new_path = new_path + "/" + "/".join(parts[static_idx + 1 :])
+            else:
+                # No static in path - extract just the filename
+                # This will be validated later and may warn
+                new_path = "/static/" + path_obj.name
+
+            # Validate file exists in static folder
+            static_file = root / "static"
+            if "static" in parts and len(parts) > static_idx + 1:
+                static_file = static_file.joinpath(*parts[static_idx + 1 :])
+            else:
+                static_file = static_file / path_obj.name
+            
+            if not static_file.exists():
+                print(
+                    f"[WARNING] Image not found: {static_file} (referenced in {unit_path})"
+                )
+
+            # Return rewritten markdown
+            return f"![{alt_text}]({new_path})"
+
+        # Match markdown image syntax: ![alt text](path)
+        pattern = r"!\[([^\]]*)\]\(([^)]+)\)"
+        return re.sub(pattern, rewrite_match, body)
 
     def _compile_course(self, root: Path) -> str:
         """
@@ -126,7 +188,9 @@ class Reader(SingleFileReader):
 
         # Warn if course index.md has uncommented text
         if self._has_uncommented_text(body):
-            print(f"[WARNING] Course index.md has uncommented text body, ignoring it: {index_path}")
+            print(
+                f"[WARNING] Course index.md has uncommented text body, ignoring it: {index_path}"
+            )
 
         title = fm.get("title", "Untitled Course")
         org = fm.get("org", "org")
@@ -152,7 +216,9 @@ class Reader(SingleFileReader):
 
             # Warn if chapter index.md has uncommented text
             if self._has_uncommented_text(body):
-                print(f"[WARNING] Chapter index.md has uncommented text body, ignoring it: {chapter_index}")
+                print(
+                    f"[WARNING] Chapter index.md has uncommented text body, ignoring it: {chapter_index}"
+                )
 
             output.append(self._heading(2, fm.get("title", chapter.name)))
             output.append("")
@@ -173,7 +239,9 @@ class Reader(SingleFileReader):
 
                 # Warn if sequential index.md has uncommented text
                 if self._has_uncommented_text(body):
-                    print(f"[WARNING] Sequential index.md has uncommented text body, ignoring it: {seq_index}")
+                    print(
+                        f"[WARNING] Sequential index.md has uncommented text body, ignoring it: {seq_index}"
+                    )
 
                 output.append(self._heading(3, fm.get("title", sequential.name)))
                 output.append("")
@@ -181,7 +249,8 @@ class Reader(SingleFileReader):
                 # ================ UNITS ================
                 units = self._sorted_items(
                     [
-                        p for p in sequential.iterdir()
+                        p
+                        for p in sequential.iterdir()
                         if p.suffix == ".md" and p.name != "index.md"
                     ]
                 )
@@ -195,6 +264,9 @@ class Reader(SingleFileReader):
                     if title:
                         output.append(self._heading(4, title))
                         output.append("")
+
+                    # Rewrite image paths before appending body
+                    body = self._rewrite_image_paths(body, unit, root)
 
                     output.append(body.rstrip())
                     output.append("")

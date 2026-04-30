@@ -1,8 +1,11 @@
+from pathlib import Path
+from typing import Optional
+
 from mu import units
 
 
 class BaseWriter:
-    def write_to(self, path: str) -> None:
+    def write_to(self, path: str, source_dir: Optional[Path] = None) -> None:
         raise NotImplementedError
 
     def write(self, unit: units.Unit) -> "BaseWriter":
