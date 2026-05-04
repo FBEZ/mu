@@ -130,8 +130,11 @@ class HtmlReader(BaseReader):
         """
         unit_type = unit_html.attrs.get(TYPE_ATTR)
         if unit_type == "mcq":
-            # Multiple choice question
+            # Multiple choice question (checkboxes)
             yield from process_mcq(unit_html)
+        elif unit_type == "scq":
+            # Single select question (radio buttons)
+            yield from process_scq(unit_html)
         elif unit_type == "video":
             yield from process_video(unit_html)
         elif unit_type == "ftq":
@@ -139,6 +142,18 @@ class HtmlReader(BaseReader):
             yield from process_ftq(unit_html)
         else:
             logger.warning("Unit type is unsupported by HTML reader: %s", unit_type)
+
+    def on_div(self, unit_html: BeautifulSoup) -> t.Iterable[units.Unit]:
+        """
+        Parse `<div>` DOM elements.
+
+        Pandoc converts fenced divs (::: {mu-type=...}) to <div data-mu-type="...">,
+        so we check for the type attribute and dispatch accordingly (same as on_section).
+        """
+        if unit_type := unit_html.attrs.get(TYPE_ATTR):
+            yield from self.on_section(unit_html)
+        else:
+            yield from self._on_html(unit_html)
 
     def _on_html(self, unit_html: BeautifulSoup) -> t.Iterable[units.Unit]:
         """
@@ -150,7 +165,6 @@ class HtmlReader(BaseReader):
         )
 
     # Add here all html elements that should be converted to RawHtml
-    on_div = _on_html
     on_p = _on_html
     on_pre = _on_html
     on_video = _on_html
@@ -245,6 +259,35 @@ def process_mcq(unit_html: BeautifulSoup) -> t.Iterable[units.Unit]:
     )
 
 
+def process_scq(unit_html: BeautifulSoup) -> t.Iterable[units.Unit]:
+    """
+    Single select (radio button) questions. Same format as MCQ but yields a
+    SingleSelectQuestion unit.
+    """
+    title, question, answers = get_question_answers(unit_html)
+    right = "✅"
+    wrong = "❌"
+    evaluated_answers = []
+    for answer in answers:
+        is_correct = False
+        if answer.startswith(right):
+            is_correct = True
+        elif answer.startswith(wrong):
+            is_correct = False
+        else:
+            raise MuError(
+                f"Incorrectly formatted answer in single select question: "
+                f"should start with either {right} or {wrong}"
+            )
+        evaluated_answers.append((answer[1:].strip(), is_correct))
+
+    yield units.SingleSelectQuestion(
+        title=title,
+        question=question,
+        answers=evaluated_answers,
+    )
+
+
 def process_ftq(unit_html: BeautifulSoup) -> t.Iterable[units.Unit]:
     title, question, answers = get_question_answers(unit_html)
     yield units.FreeTextQuestion(title=title, question=question, answers=answers)
@@ -292,8 +335,8 @@ def get_question_answers(unit_html: BeautifulSoup) -> t.Tuple[str, str, t.List[s
     question_html = unit_html.find("p")
     if question_html is None:
         raise MuError(f"Missing <p> element in multiple choice question: {unit_html}")
-    question = question_html.string.strip()
-    if question is None:
+    question = question_html.get_text().strip()
+    if not question:
         raise MuError(
             f"Missing question string in multiple choice question: {unit_html}"
         )
@@ -301,7 +344,7 @@ def get_question_answers(unit_html: BeautifulSoup) -> t.Tuple[str, str, t.List[s
     if ul_html is None:
         raise MuError(f"Missing <ul> element in multiple choice question: {unit_html}")
     for li_html in ul_html.find_all("li"):
-        answer = li_html.string.strip()
+        answer = li_html.get_text().strip()
         answers.append(answer.strip())
 
     return title, question, answers

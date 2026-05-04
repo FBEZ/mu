@@ -32,5 +32,8 @@ class BaseWriter:
     def on_video(self, unit: units.Video) -> None:
         pass
 
+    def on_singleselectquestion(self, unit: units.SingleSelectQuestion) -> None:
+        pass
+
     def on_rawhtml(self, unit: units.RawHtml) -> None:
         pass

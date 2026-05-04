@@ -64,6 +64,24 @@ class UnstyledWriter(BaseWriter):
 
         self.append_to_body(section_html)
 
+    def on_singleselectquestion(self, unit: units.SingleSelectQuestion) -> None:
+        section_html = Tag(name="section", attrs={TYPE_ATTR: "scq"})
+
+        # Write question
+        question_html = Tag(name="p")
+        question_html.string = unit.question
+        section_html.append(question_html)
+        answers_html = Tag(name="ul")
+
+        # Write answers
+        for answer, is_correct in unit.answers:
+            answer_html = Tag(name="li")
+            answer_html.string = f"{'✅' if is_correct else '❌'} {answer}"
+            answers_html.append(answer_html)
+        section_html.append(answers_html)
+
+        self.append_to_body(section_html)
+
     def on_freetextquestion(self, unit: units.FreeTextQuestion) -> None:
         section_html = Tag(name="section", attrs={TYPE_ATTR: "ftq"})
 

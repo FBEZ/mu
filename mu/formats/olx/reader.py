@@ -70,8 +70,21 @@ class InlineReader(BaseReader):
         question_xml = unit_xml.find("label")
         question = question_xml.string if question_xml else ""
 
-        if response_xml := unit_xml.find("choiceresponse"):
-            # Multiple choice question
+        if response_xml := unit_xml.find("multiplechoiceresponse"):
+            # Single select question (radio buttons)
+            yield units.SingleSelectQuestion(
+                title=unit_xml.attrs.get("display_name", ""),
+                question=question,
+                answers=[
+                    (
+                        answer_xml.string,
+                        answer_xml.attrs.get("correct", "").lower() == "true",
+                    )
+                    for answer_xml in response_xml.find_all("choice")
+                ],
+            )
+        elif response_xml := unit_xml.find("choiceresponse"):
+            # Multiple choice question (checkboxes)
             yield units.MultipleChoiceQuestion(
                 title=unit_xml.attrs.get("display_name", ""),
                 question=question,
