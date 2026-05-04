@@ -49,9 +49,48 @@ class Course(Collection):
     """
     Top-level element of a course.
 
-    For now there is nothing special about this unit, but we may add extra properties in
-    the future.
+    Supports additional metadata fields for course configuration:
+    - description: Short course description
+    - overview: Detailed course overview (can be HTML)
+    - course_image: Filename of course image in static/ folder
+    - video_embed: Full iframe embed code for course promo video
+    - start_date: Course start date (ISO 8601 format)
+    - end_date: Course end date (ISO 8601 format)
+    - enrollment_start: Enrollment start date (ISO 8601 format)
+    - enrollment_end: Enrollment end date (ISO 8601 format)
+    - effort: Expected effort per week
+    - duration: Course duration
+    - language: Course language code
     """
+
+    def __init__(
+        self,
+        attributes: t.Optional[t.Dict[str, str]] = None,
+        title: str = "",
+        description: str = "",
+        overview: str = "",
+        course_image: str = "",
+        video_embed: str = "",
+        start_date: str = "",
+        end_date: str = "",
+        enrollment_start: str = "",
+        enrollment_end: str = "",
+        effort: str = "",
+        duration: str = "",
+        language: str = "",
+    ):
+        super().__init__(attributes=attributes, title=title)
+        self.description = description
+        self.overview = overview
+        self.course_image = course_image
+        self.video_embed = video_embed
+        self.start_date = start_date
+        self.end_date = end_date
+        self.enrollment_start = enrollment_start
+        self.enrollment_end = enrollment_end
+        self.effort = effort
+        self.duration = duration
+        self.language = language
 
 
 class MultipleChoiceQuestion(Unit):

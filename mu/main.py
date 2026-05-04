@@ -100,7 +100,13 @@ def parse_args() -> argparse.Namespace:
         elif os.path.isdir(args.output):
             args.to_format = "olx"
         else:
-            raise MuError("Could not detect output file format.")
+            # If output doesn't exist and has no file extension, create it as a folder
+            if not os.path.exists(args.output) and not os.path.splitext(args.output)[1]:
+                os.makedirs(args.output, exist_ok=True)
+                args.to_format = "olx"
+                logger.info("Created output directory: %s", args.output)
+            else:
+                raise MuError("Could not detect output file format.")
         logger.info("Detected output format: %s", args.to_format)
 
     return args

@@ -68,8 +68,13 @@ class Writer(BaseWriter):
         self.xml_paths.append((unit_xml, "course.xml"))
         self.unit_xml[unit] = unit_xml
 
-        # course/<title>.xml
+        # course/<title>.xml - will be created by process_top_level_unit
+        # We need to store the course unit to add metadata to course/<url_name>.xml later
+        self.course_unit = unit
         self.process_top_level_unit(unit)
+        
+        # Generate about/ directory files
+        self._generate_about_files(unit)
 
     def on_multiplechoicequestion(self, unit: units.MultipleChoiceQuestion) -> None:
         """
@@ -185,6 +190,22 @@ class Writer(BaseWriter):
             # Borrow the title from the above unit
             display_name = unit.parent.title
         unit_xml = Tag(name=unit_type, attrs={"display_name": display_name})
+        
+        # Add course-specific attributes for course XML
+        if unit_type == "course" and isinstance(unit, units.Course):
+            if unit.course_image:
+                unit_xml.attrs["course_image"] = unit.course_image
+            if unit.start_date:
+                unit_xml.attrs["start"] = unit.start_date
+            if unit.end_date:
+                unit_xml.attrs["end"] = unit.end_date
+            if unit.enrollment_start:
+                unit_xml.attrs["enrollment_start"] = unit.enrollment_start
+            if unit.enrollment_end:
+                unit_xml.attrs["enrollment_end"] = unit.enrollment_end
+            if unit.language:
+                unit_xml.attrs["language"] = unit.language
+        
         self.xml_paths.append(
             (
                 unit_xml,
@@ -203,6 +224,60 @@ class Writer(BaseWriter):
             parent = parent.parent
 
         return unit_xml
+
+    def _generate_about_files(self, unit: units.Course) -> None:
+        """
+        Generate about/ directory files with course metadata.
+        
+        Files generated:
+        - about/title.html
+        - about/short_description.html
+        - about/overview.html
+        - about/effort.html
+        - about/duration.html
+        - about/video.html
+        """
+        # title.html
+        if unit.title:
+            self.xml_paths.append((
+                BeautifulSoup(unit.title, "html.parser"),
+                "about/title.html"
+            ))
+        
+        # short_description.html
+        if unit.description:
+            self.xml_paths.append((
+                BeautifulSoup(unit.description, "html.parser"),
+                "about/short_description.html"
+            ))
+        
+        # overview.html
+        if unit.overview:
+            self.xml_paths.append((
+                BeautifulSoup(unit.overview, "html.parser"),
+                "about/overview.html"
+            ))
+        
+        # effort.html
+        if unit.effort:
+            self.xml_paths.append((
+                BeautifulSoup(unit.effort, "html.parser"),
+                "about/effort.html"
+            ))
+        
+        # duration.html
+        if unit.duration:
+            self.xml_paths.append((
+                BeautifulSoup(unit.duration, "html.parser"),
+                "about/duration.html"
+            ))
+        
+        # video.html
+        if unit.video_embed:
+            self.xml_paths.append((
+                BeautifulSoup(unit.video_embed, "html.parser"),
+                "about/video.html"
+            ))
 
 
 def get_url_name(unit: units.Unit) -> str:

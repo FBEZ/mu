@@ -49,9 +49,6 @@ class UnstyledWriter(BaseWriter):
     def on_multiplechoicequestion(self, unit: units.MultipleChoiceQuestion) -> None:
         section_html = Tag(name="section", attrs={TYPE_ATTR: "mcq"})
 
-        # Write title
-        section_html.append(self.get_header(unit))
-
         # Write question
         question_html = Tag(name="p")
         question_html.string = unit.question
@@ -69,9 +66,6 @@ class UnstyledWriter(BaseWriter):
 
     def on_freetextquestion(self, unit: units.FreeTextQuestion) -> None:
         section_html = Tag(name="section", attrs={TYPE_ATTR: "ftq"})
-
-        # Write title
-        section_html.append(self.get_header(unit))
 
         # Write question
         question_html = Tag(name="p")

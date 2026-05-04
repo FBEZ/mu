@@ -47,11 +47,28 @@ class HtmlReader(BaseReader):
         assert header_level is not None
 
         # Create collection unit
-        UnitClass = units.Course if header_level == 1 else units.Collection
-        unit: units.Collection = UnitClass(
-            attributes=get_data_attributes(unit_html),
-            title=unit_html.string.strip(),
-        )
+        attributes = get_data_attributes(unit_html)
+        title = unit_html.string.strip()
+        
+        if header_level == 1:
+            # Extract course-specific metadata from attributes
+            unit: units.Collection = units.Course(
+                attributes=attributes,
+                title=title,
+                description=attributes.get("course-description", ""),
+                overview=attributes.get("course-overview", "").replace("&#10;", "\n"),
+                course_image=attributes.get("course-image", ""),
+                video_embed=attributes.get("course-video", "").replace("&quot;", '"'),
+                start_date=attributes.get("course-start-date", ""),
+                end_date=attributes.get("course-end-date", ""),
+                enrollment_start=attributes.get("course-enrollment-start", ""),
+                enrollment_end=attributes.get("course-enrollment-end", ""),
+                effort=attributes.get("course-effort", ""),
+                duration=attributes.get("course-duration", ""),
+                language=attributes.get("course-language", ""),
+            )
+        else:
+            unit = units.Collection(attributes=attributes, title=title)
 
         # Find children units.
         siblings_are_children = True
