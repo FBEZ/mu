@@ -100,6 +100,27 @@ class Writer(BaseWriter):
         response_xml.append(responsegroup_xml)
         problem_xml.append(response_xml)
 
+    def on_singleselectquestion(self, unit: units.SingleSelectQuestion) -> None:
+        """
+        https://docs.openedx.org/en/latest/educators/references/course_development/exercise_tools/single_select_xml.html
+        """
+        problem_xml = self.process_unit(unit, "problem")
+        response_xml = Tag(name="multiplechoiceresponse")
+        question_xml = Tag(name="label")
+        question_xml.string = unit.question
+        response_xml.append(question_xml)
+        choicegroup_xml = Tag(name="choicegroup", attrs={"type": "MultipleChoice"})
+        for answer, is_correct in unit.answers:
+            answer_xml = Tag(
+                name="choice",
+                attrs={"correct": str(is_correct).lower()},
+            )
+            answer_xml.string = answer
+            choicegroup_xml.append(answer_xml)
+
+        response_xml.append(choicegroup_xml)
+        problem_xml.append(response_xml)
+
     def on_freetextquestion(self, unit: units.MultipleChoiceQuestion) -> None:
         """
         https://docs.openedx.org/en/latest/educators/references/course_development/exercise_tools/text_input_xml.html

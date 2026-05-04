@@ -107,6 +107,26 @@ class MultipleChoiceQuestion(Unit):
         self.answers = [(answer.strip(), is_correct) for answer, is_correct in answers]
 
 
+class SingleSelectQuestion(Unit):
+    """
+    A question for which the student must select exactly one correct answer (radio buttons).
+
+    In Open edX OLX, this maps to <multiplechoiceresponse> with <choicegroup>.
+    """
+
+    def __init__(
+        self,
+        attributes: t.Optional[t.Dict[str, str]] = None,
+        title: str = "",
+        question: str = "",
+        answers: t.Optional[t.List[t.Tuple[str, bool]]] = None,
+    ):
+        super().__init__(attributes=attributes, title=title)
+        self.question = question
+        answers = answers or []
+        self.answers = [(answer.strip(), is_correct) for answer, is_correct in answers]
+
+
 class FreeTextQuestion(MultipleChoiceQuestion):
     """
     A question for which the student is presented with a free text field to answer.

@@ -46,9 +46,8 @@ example-olx: ## Generate OLX example from the markdown file
 
 
 run_course:
-	export MU_DEBUG_FOLDER_MD=1
-	python -m mu.main examples/course_complete ./examples_output/course_multi/  
-	tar -zcvf ./examples_output/course_multi_ready_$$(date +%Y%m%d_%H%M%S).tar.gz course_multi/
+	MU_DEBUG_FOLDER_MD=1 python -m mu.main examples/course_complete ./examples_output/course_multi/
+	tar -zcvf ./examples_output/course_multi_ready_$$(date +%Y%m%d_%H%M%S).tar.gz ./examples_output/course_multi/
 	rm -rf ./examples_output/course_multi/
 
 ESCAPE = 
